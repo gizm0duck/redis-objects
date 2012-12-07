@@ -16,6 +16,7 @@ class Redis
 
     # Works like add.  Can chain together: list << 'a' << 'b'
     def <<(value)
+      @cache[key] = nil
       add(value)
       self  # for << 'a' << 'b'
     end
@@ -23,23 +24,27 @@ class Redis
     # Add the specified value to the set only if it does not exist already.
     # Redis: SADD
     def add(value)
+      @cache[key] = nil
       redis.sadd(key, to_redis(value))
     end
 
     # Remove and return a random member.  Redis: SPOP
     def pop
+      @cache[key] = nil
       from_redis redis.spop(key)
     end
 
     # Adds the specified values to the set. Only works on redis > 2.4
     # Redis: SADD
     def merge(*values)
-      redis.sadd(key, values.flatten.map{|v| to_redis(v)})
+      values = values.flatten
+      return if values.empty?
+      redis.sadd(key, values.map{|v| to_redis(v)})
     end
 
     # Return all members in the set.  Redis: SMEMBERS
     def members
-      v = from_redis redis.smembers(key)
+      v = @cache[key] ||= from_redis(redis.smembers(key))
       v.nil? ? [] : v
     end
     alias_method :get, :members
@@ -52,6 +57,7 @@ class Redis
     
     # Delete the value from the set.  Redis: SREM
     def delete(value)
+      @cache[key] = nil
       redis.srem(key, to_redis(value))
     end
     
@@ -159,7 +165,7 @@ class Redis
 
     # The number of members in the set. Aliased as size. Redis: SCARD
     def length
-      redis.scard(key)
+      members.size
     end
     alias_method :size, :length
     alias_method :count, :length

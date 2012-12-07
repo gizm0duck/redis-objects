@@ -17,6 +17,7 @@ class Redis
     end
 
     def value=(val)
+      @cache[key] = nil
       if val.nil?
         delete
       else
@@ -26,7 +27,7 @@ class Redis
     alias_method :set, :value=
 
     def value
-      from_redis redis.get(key)
+      @cache[key] ||= from_redis redis.get(key)
     end
     alias_method :get, :value
 
