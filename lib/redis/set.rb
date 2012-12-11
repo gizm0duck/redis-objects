@@ -165,7 +165,11 @@ class Redis
 
     # The number of members in the set. Aliased as size. Redis: SCARD
     def length
-      members.size
+      if @cache[key]
+        members.size
+      else
+        redis.scard(key)
+      end
     end
     alias_method :size, :length
     alias_method :count, :length
